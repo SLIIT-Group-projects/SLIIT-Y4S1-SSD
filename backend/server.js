@@ -10,6 +10,7 @@ const doctorRoutes = require("./routes/doctors");
 const appointmentRoutes = require("./routes/appointments");
 const labReportRoutes = require("./routes/labReportRoutes");
 const authMiddleware = require("./middleware/authMiddleware");
+const helmet = require("helmet");
 require("dotenv").config();
 const { ClerkExpressRequireAuth } = require("@clerk/clerk-sdk-node");
 
@@ -23,7 +24,31 @@ const PORT = process.env.PORT || 5000;
 app.use(bodyParser.json());
 app.use(bodyParser.urlencoded({ extended: true }));
 app.use(express.json());
+app.use(helmet()); // CORS (keep permissive for dev only)
 
+// siluni
+// ✅ Restrict CORS origins
+const allowedOrigins = [
+  "http://localhost:5173",         // dev frontend
+  "https://your-production-domain.com" // prod frontend
+];
+
+app.use(
+  cors({
+    origin: function (origin, callback) {
+      if (!origin) return callback(null, true); // allow non-browser clients (curl, Postman)
+      if (allowedOrigins.indexOf(origin) === -1) {
+        return callback(new Error("CORS policy: origin not allowed"), false);
+      }
+      return callback(null, origin);
+    },
+    credentials: true,
+    methods: ["GET", "POST", "PUT", "DELETE", "OPTIONS"],
+    allowedHeaders: ["Content-Type", "Authorization"],
+  })
+);
+
+// daham X frame-option
 // anti-clickjacking
 app.use((req, res, next) => {
   res.setHeader('Content-Security-Policy', "frame-ancestors 'none'");
@@ -31,16 +56,7 @@ app.use((req, res, next) => {
   next();
 });
 
-// CORS (keep permissive for dev only)
-app.use(
-  cors({
-    origin: "*",
-    methods: ["GET", "POST", "PUT", "DELETE", "OPTIONS"],
-    allowedHeaders: ["Content-Type", "Authorization"],
-  })
-);
-
-// General API limiter – controls abuse / scraping / DoS
+// General API limiter
 const apiLimiter = rateLimit({
   windowMs: 60 * 1000,   // 1 minute
   max: 200,              // 200 requests per IP per minute
