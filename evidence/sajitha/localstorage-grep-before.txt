@@ -1,0 +1,13 @@
+frontend/src/components/SignIn.jsx:8:      // Store clerkUserId in localStorage when the user accesses their profile
+frontend/src/components/SignIn.jsx:9:      localStorage.setItem("clerkUserId", user.id);
+frontend/src/components/UserProfile.jsx:16:      // Store clerkUserId in localStorage when the user accesses their profile
+frontend/src/components/UserProfile.jsx:17:      localStorage.setItem("clerkUserId", user.id);
+frontend/src/pages/AdminUploadPage.jsx:23:          Authorization: `Bearer ${localStorage.getItem("token")}`,
+frontend/src/pages/DoctorDashboard.jsx:116:      //       // Authorization: `Bearer ${localStorage.getItem("token")}`, // Corrected header
+frontend/src/pages/HomePage.jsx:20:          // Store clerkUserId in localStorage when the user logs in
+frontend/src/pages/HomePage.jsx:21:          localStorage.setItem("clerkUserId", user.id);
+frontend/src/pages/UserLabTestsPage.jsx:8:  //const clerkUserId = localStorage.getItem("clerkUserId"); // Assuming this is stored in localStorage
+frontend/src/pages/UserLabTestsPage.jsx:11:    const storedClerkUserId = localStorage.getItem("clerkUserId");
+frontend/src/pages/UserLabTestsPage.jsx:32:        //     //   Authorization: `Bearer ${localStorage.getItem("token")}`,
+frontend/src/services/labReportService.js:6:      Authorization: `Bearer ${localStorage.getItem("token")}`,
+frontend/src/services/labReportService.js:18:        Authorization: `Bearer ${localStorage.getItem("token")}`,

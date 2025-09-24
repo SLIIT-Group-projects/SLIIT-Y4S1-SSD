@@ -17,7 +17,7 @@ const DoctorViews = () => {
     const fetchDoctors = async () => {
       try {
         const token = await getToken(); // Retrieve the token for authorization
-        console.log("token - ", token);
+        // console.log("token - ", token);
 
         const response = await axios.get(
           "http://localhost:5000/doctor/all-doctors",
@@ -84,7 +84,9 @@ const DoctorViews = () => {
                 </div>
               </div>
               <h3 className="text-xl font-bold mb-2">{doctor.name}</h3>
-              <p className="text-gray-700 mb-1">Experience: {doctor.experience} years</p>
+              <p className="text-gray-700 mb-1">
+                Experience: {doctor.experience} years
+              </p>
               <p className="text-gray-700 mb-1">Bio: {doctor.bio}</p>
               <p className="text-gray-700 mb-1">
                 Email:{" "}

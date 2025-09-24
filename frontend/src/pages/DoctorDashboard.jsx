@@ -113,7 +113,7 @@ function DoctorDashboard() {
       //   await axios.post("http://localhost:5000/api/reports/upload", formData, {
       //     headers: {
       //       "Content-Type": "multipart/form-data",
-      //       // Authorization: `Bearer ${localStorage.getItem("token")}`, // Corrected header
+      //       // Authorization header will be added by Clerk's secure token management
       //     },
       //   });
       Swal.fire({

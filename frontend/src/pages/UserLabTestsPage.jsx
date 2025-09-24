@@ -1,21 +1,19 @@
 import React, { useState, useEffect } from "react";
 import axios from "axios";
+import { useUser } from "@clerk/clerk-react";
 
 function UserLabTestsPage() {
+  const { user } = useUser();
   const [labTests, setLabTests] = useState([]);
   const [clerkUserId, setClerkUserId] = useState(null);
 
-  //const clerkUserId = localStorage.getItem("clerkUserId"); // Assuming this is stored in localStorage
-
   useEffect(() => {
-    const storedClerkUserId = localStorage.getItem("clerkUserId");
-
-    if (!storedClerkUserId) {
-      console.error("clerkUserId is null. Unable to fetch lab reports.");
+    if (!user) {
+      console.error("User not authenticated. Unable to fetch lab reports.");
       return;
     }
 
-    setClerkUserId(storedClerkUserId);
+    setClerkUserId(user.id);
 
     // if (!clerkUserId) {
     //   console.error("clerkUserId is null. Unable to fetch lab reports.");
@@ -25,19 +23,20 @@ function UserLabTestsPage() {
 
     const fetchLabTests = async () => {
       try {
+        // Alternative secure implementation using Clerk tokens:
         // const response = await axios.get(
         //   "http://localhost:5000/api/reports/user",
         //   {
-        //     // headers: {
-        //     //   Authorization: `Bearer ${localStorage.getItem("token")}`,
-        //     // },
+        //     headers: {
+        //       Authorization: `Bearer ${await getToken()}`,
+        //     },
         //     params: {
-        //       clerkUserId: clerkUserId, // Pass clerkUserId as a query parameter
+        //       clerkUserId: user.id, // Pass clerkUserId as a query parameter
         //     },
         //   }
         // );
         const response = await axios.get(
-          `http://localhost:5000/api/reports/user?clerkUserId=${storedClerkUserId}`
+          `http://localhost:5000/api/reports/user?clerkUserId=${user.id}`
         );
         console.log("Fetched lab reports:", response.data); // Log fetched data
         // Ensure the response is an array
@@ -50,7 +49,7 @@ function UserLabTestsPage() {
     };
 
     fetchLabTests();
-  }, [clerkUserId]);
+  }, [user]);
 
   if (!clerkUserId) {
     return (

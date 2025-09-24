@@ -3,14 +3,10 @@ import { useUser } from "@clerk/clerk-react";
 function SigninPage() {
   const { user } = useUser();
 
-  useEffect(() => {
-    if (user) {
-      // Store clerkUserId in localStorage when the user accesses their profile
-      localStorage.setItem("clerkUserId", user.id);
-    }
-  }, [user]);
+  // Clerk handles user authentication securely
+  // The user object is available throughout the app when authenticated
 
-  return <div>{user.firstName} hi you are logged in</div>;
+  return <div>{user?.firstName} hi you are logged in</div>;
 }
 
 export default SigninPage;

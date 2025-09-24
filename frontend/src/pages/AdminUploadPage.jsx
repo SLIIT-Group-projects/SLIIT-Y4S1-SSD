@@ -1,7 +1,9 @@
 import React, { useState } from "react";
 import axios from "axios";
+import { useAuth } from "@clerk/clerk-react";
 
 function AdminUploadPage() {
+  const { getToken } = useAuth();
   const [file, setFile] = useState(null);
   const [userId, setUserId] = useState("");
   const [reportID, setReportID] = useState("");
@@ -17,10 +19,11 @@ function AdminUploadPage() {
     formData.append("userId", userId);
 
     try {
+      const token = await getToken();
       await axios.post("/api/reports/upload", formData, {
         headers: {
           "Content-Type": "multipart/form-data",
-          Authorization: `Bearer ${localStorage.getItem("token")}`,
+          Authorization: `Bearer ${token}`,
         },
       });
       alert("Report uploaded successfully!");

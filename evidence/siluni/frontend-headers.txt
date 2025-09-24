@@ -1,0 +1,12 @@
+
+Key                         Value                              
+---                         -----                              
+Access-Control-Allow-Origin *                                  
+Connection                  keep-alive                         
+Keep-Alive                  timeout=5                          
+Cache-Control               no-cache                           
+Content-Type                text/html                          
+Date                        Mon, 22 Sep 2025 15:46:07 GMT      
+ETag                        W/"2af-7EGgG/arQmSEEQSIT1+H86Mzf4A"
+
+

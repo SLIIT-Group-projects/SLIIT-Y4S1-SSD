@@ -1,0 +1,13 @@
+
+Key                          Value                        
+---                          -----                        
+Access-Control-Allow-Origin  *                            
+Access-Control-Allow-Methods GET,POST,PUT,DELETE,OPTIONS  
+Access-Control-Allow-Headers Content-Type,Authorization   
+Connection                   keep-alive                   
+Keep-Alive                   timeout=5                    
+Content-Length               0                            
+Date                         Tue, 23 Sep 2025 02:58:19 GMT
+X-Powered-By                 Express                      
+
+
