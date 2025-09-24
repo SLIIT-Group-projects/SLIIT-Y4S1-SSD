@@ -1,101 +1,78 @@
-const express = require("express");
+const express = require("express"); 
 const { ClerkExpressRequireAuth } = require("@clerk/clerk-sdk-node");
-const User = require("../models/user"); // Import the User model
+const { body, validationResult } = require("express-validator");
+const User = require("../models/user");
+
 const router = express.Router();
 
-// Middleware to validate request body for saving user data
-const validateUserData = (req, res, next) => {
-  const { firstName, lastName, additionalData } = req.body;
-
-  if (!firstName && !lastName && !additionalData) {
-    return res.status(400).json({
-      message:
-        "At least one of firstName, lastName, or additionalData is required",
-    });
+// Validation middleware
+const validateUser = [
+  body("email").optional().isEmail().withMessage("Invalid email format"),
+  body("firstName").optional().isString().trim().escape(),
+  body("lastName").optional().isString().trim().escape(),
+  body("additionalData").optional().isString().trim().escape(),
+  (req, res, next) => {
+    const errors = validationResult(req);
+    if (!errors.isEmpty()) {
+      return res.status(400).json({ errors: errors.array() });
+    }
+    next();
   }
+];
 
-  next();
-};
+// Role check middleware (for admin-only routes)
+function requireRole(role) {
+  return (req, res, next) => {
+    if (!req.auth || req.auth.userRole !== role) {
+      return res.status(403).json({ message: "Forbidden: Admins only" });
+    }
+    next();
+  };
+}
 
-// Route to save user data
+// Route to save or update user data
 router.post(
-  "/save-user-data",
+  "/save-user",
   ClerkExpressRequireAuth(),
-  validateUserData,
+  validateUser,
   async (req, res) => {
     const clerkUserId = req.auth.userId;
-    const { firstName, lastName, email } = req.body;
+    const { firstName, lastName, email, additionalData } = req.body;
 
     try {
       let user = await User.findOne({ clerkUserId });
 
       if (!user) {
-        // Create a new user entry if it doesn't exist
         user = new User({
           clerkUserId,
-          email,
+          email: email || "",
           firstName: firstName || "",
           lastName: lastName || "",
-          additionalData: additionalData || "", // Ensure it's a string
+          additionalData: additionalData || "",
         });
       } else {
-        // Update existing user data
-        user.firstName = firstName || user.firstName;
-        user.lastName = lastName || user.lastName;
-        user.email = email || user.email;
-        user.additionalData = additionalData || ""; // Update to a string
+        if (email) user.email = email;
+        if (firstName) user.firstName = firstName;
+        if (lastName) user.lastName = lastName;
+        if (additionalData) user.additionalData = additionalData;
       }
 
       await user.save();
-      res.status(201).json({ message: "User data saved successfully", user });
+      res.status(201).json({ message: "User saved successfully", user });
     } catch (error) {
-      console.error("Error saving user data:", error);
-      res
-        .status(500)
-        .json({ message: "Internal server error", error: error.message });
+      console.error("Error saving user:", error);
+      res.status(500).json({ message: "Internal server error", error: error.message });
     }
   }
 );
 
-router.post("/save-user", ClerkExpressRequireAuth(), async (req, res) => {
-  const clerkUserId = req.auth.userId;
-  const { email, firstName, lastName } = req.body;
-
-  try {
-    // Check if the user already exists in MongoDB
-    const existingUser = await User.findOne({ clerkUserId });
-
-    if (existingUser) {
-      return res.status(200).json({ message: "User already exists" });
-    }
-
-    // If user doesn't exist, save them to the database
-    const newUser = new User({
-      clerkUserId,
-      email,
-      firstName,
-      lastName,
-    });
-
-    await newUser.save();
-
-    res.status(201).json({ message: "User saved successfully" });
-  } catch (error) {
-    console.error("Error saving user to MongoDB:", error);
-    res.status(500).json({ message: "Internal server error" });
-  }
-});
-
-// Route to get user data
+// Route to get current user data
 router.get("/get-user-data", ClerkExpressRequireAuth(), async (req, res) => {
   const clerkUserId = req.auth.userId;
 
   try {
     const user = await User.findOne({ clerkUserId });
-
-    if (!user) {
-      return res.status(404).json({ message: "User not found" });
-    }
+    if (!user) return res.status(404).json({ message: "User not found" });
 
     res.status(200).json({
       firstName: user.firstName,
@@ -109,29 +86,22 @@ router.get("/get-user-data", ClerkExpressRequireAuth(), async (req, res) => {
   }
 });
 
-router.get("/all-users", async (req, res) => {
-  try {
-    const users = await User.find(); // Assuming you're using Mongoose
-    res.json(users);
-  } catch (error) {
-    res.status(500).json({ error: "Error fetching users" });
-  }
-});
-
-
-//get all users- siluni
-router.get('/get-all-users', async (req, res) => {
-  try {
-    const users = await User.find(); // Fetch all users from the database
-    if (!users || users.length === 0) {
-      return res.status(404).json({ message: 'No users found.' });
+// Admin-only: Get all users
+router.get("/all-users",
+  ClerkExpressRequireAuth(),
+  requireRole("admin"),
+  async (req, res) => {
+    try {
+      const users = await User.find();
+      if (!users || users.length === 0) {
+        return res.status(404).json({ message: "No users found." });
+      }
+      res.status(200).json({ users });
+    } catch (error) {
+      console.error("Error fetching users:", error);
+      res.status(500).json({ message: "Internal server error." });
     }
-
-    res.status(200).json({ users });
-  } catch (error) {
-    console.error('Error fetching users:', error);
-    res.status(500).json({ message: 'Internal server error.', error: error.message });
   }
-});
+);
 
 module.exports = router;

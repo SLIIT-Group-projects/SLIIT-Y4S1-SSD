@@ -31,7 +31,7 @@ exports.doctor = (req, res, next) => {
 
     const user = await User.findById(decoded.id);
     if (user.role !== 'doctor') {
-      return res.status(403).json({ message: 'Admin access required' });
+      return res.status(403).json({ message: 'Doctor access required' });
     }
 
     req.user = decoded;
