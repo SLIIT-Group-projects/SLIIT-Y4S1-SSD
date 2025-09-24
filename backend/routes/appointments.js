@@ -7,7 +7,7 @@ const rateLimit = require("express-rate-limit");
 const router = express.Router();
 
 const sensitiveLimiter = rateLimit({
-  windowMs: 30 * 60 * 1000, // 15 minutes
+  windowMs: 30 * 60 * 1000, // 30 minutes
   max: 10,                   // 10 requests per IP per window
   standardHeaders: true,
   legacyHeaders: false,
