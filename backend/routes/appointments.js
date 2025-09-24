@@ -2,12 +2,21 @@ const express = require("express");
 const { ClerkExpressRequireAuth } = require("@clerk/clerk-sdk-node");
 const Appointment = require("../models/appointment");
 const AppointmentFactory = require("../factory/AppointmentFactory");
+const rateLimit = require("express-rate-limit");
 
 const router = express.Router();
 
+const sensitiveLimiter = rateLimit({
+  windowMs: 30 * 60 * 1000, // 15 minutes
+  max: 10,                   // 10 requests per IP per window
+  standardHeaders: true,
+  legacyHeaders: false,
+  message: { error: "Too many authentication requests, try again later." },
+});
+
 // POST request to create a new doctor
 router.post(
-  "/create-appointment",
+  "/create-appointment",sensitiveLimiter,
   ClerkExpressRequireAuth(),
   async (req, res) => {
     const clerkUserId = req.auth.userId;

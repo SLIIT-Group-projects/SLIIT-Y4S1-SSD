@@ -1,0 +1,187 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+<title>Rate Limit Demo Dashboard</title>
+<style>
+  :root{
+    --lime:#D1EC3F;
+    --pink:#FF4AB3;
+    --ink:#212121;
+    --lav:#E6B4F4;
+    --peach:#FF9D60;
+    --teal:#07BDD6;
+    --bg:#f5f7fb;
+    --card:#ffffff;
+    --muted:#6b7280;
+  }
+  *{box-sizing:border-box}
+  body{margin:0;font-family:system-ui,-apple-system,Segoe UI,Roboto,Inter,Arial,sans-serif;background:var(--bg);color:var(--ink)}
+  header{padding:20px 24px;background:linear-gradient(90deg,var(--teal),var(--lav));color:#fff}
+  header h1{margin:0;font-size:20px;letter-spacing:.2px}
+  main{padding:24px;max-width:1000px;margin:auto}
+  .card{background:var(--card);border-radius:16px;box-shadow:0 6px 24px rgba(0,0,0,.08);padding:20px;margin-bottom:20px}
+  .row{display:flex;gap:16px;flex-wrap:wrap}
+  .field{flex:1;min-width:220px}
+  label{display:block;font-size:12px;color:var(--muted);margin-bottom:6px}
+  input,select{width:100%;padding:10px 12px;border:1px solid #e5e7eb;border-radius:10px;font-size:14px}
+  .actions{display:flex;gap:12px;flex-wrap:wrap}
+  button{border:0;border-radius:12px;padding:10px 14px;font-weight:600;cursor:pointer}
+  .run{background:var(--teal);color:#fff}
+  .stop{background:#ef4444;color:#fff}
+  .muted{background:#e5e7eb;color:#111827}
+  .summary{display:flex;gap:12px;flex-wrap:wrap;margin-top:12px}
+  .chip{display:inline-flex;align-items:center;gap:8px;padding:8px 12px;border-radius:999px;font-weight:600}
+  .ok{background:rgba(209,236,63,.2);color:#3a4a00;border:1px solid rgba(209,236,63,.5)}
+  .rl{background:rgba(255,74,179,.18);color:#5f0b3a;border:1px solid rgba(255,74,179,.5)}
+  .err{background:#fee2e2;color:#7f1d1d;border:1px solid #fecaca}
+  .table-wrap{overflow:auto;border:1px solid #e5e7eb;border-radius:14px;margin-top:14px}
+  table{border-collapse:collapse;width:100%;min-width:520px}
+  th,td{padding:10px 12px;border-bottom:1px solid #f1f5f9;text-align:left;font-size:14px}
+  thead th{background:#f8fafc;font-size:12px;text-transform:uppercase;letter-spacing:.08em;color:#64748b}
+  tr:last-child td{border-bottom:0}
+  .badge{display:inline-block;padding:4px 8px;border-radius:999px;font-weight:700;font-size:12px}
+  .b200{background:var(--lime);color:#1a1a1a}
+  .b429{background:var(--pink);color:#fff}
+  .b4xx,.b5xx{background:#ffd7d7;color:#7f1d1d}
+  .headers pre{background:#0b1020;color:#d1e7ff;border-radius:10px;padding:12px;overflow:auto}
+  .foot{font-size:12px;color:#6b7280;margin-top:10px}
+</style>
+</head>
+<body>
+<header><h1>Rate Limit Demo Dashboard</h1></header>
+<main>
+  <div class="card">
+    <div class="row">
+      <div class="field"><label>URL</label>
+        <input id="url" value="http://localhost:5000/api/health" />
+      </div>
+      <div class="field" style="max-width:140px"><label>Attempts</label>
+        <input id="attempts" type="number" min="1" value="12" />
+      </div>
+      <div class="field" style="max-width:160px"><label>Method</label>
+        <select id="method">
+          <option>GET</option>
+          <option>POST</option>
+        </select>
+      </div>
+      <div class="field" style="max-width:160px"><label>Delay (ms)</label>
+        <input id="delay" type="number" min="0" value="100" />
+      </div>
+    </div>
+    <div class="actions" style="margin-top:12px">
+      <button class="run" id="runBtn">Run</button>
+      <button class="stop" id="stopBtn" disabled>Stop</button>
+      <button class="muted" id="clearBtn">Clear</button>
+    </div>
+    <div class="summary" id="summary"></div>
+  </div>
+
+  <div class="card">
+    <div class="table-wrap">
+      <table>
+        <thead><tr><th>#</th><th>Status</th><th>Note</th><th>Time</th></tr></thead>
+        <tbody id="tbody"></tbody>
+      </table>
+    </div>
+    <div class="headers" style="margin-top:14px">
+      <h3 style="margin:8px 0 6px">Rate Limit Headers (sample)</h3>
+      <pre id="hdrs">(Run to capture a response...)</pre>
+    </div>
+    <div class="foot">Tip: For a perfect screenshot, set small demo limits (e.g., 5 requests) in code, then restore real limits after.</div>
+  </div>
+</main>
+
+<script>
+let stopFlag = false;
+const $ = sel => document.querySelector(sel);
+const tbody = $('#tbody');
+const summary = $('#summary');
+const hdrs = $('#hdrs');
+
+function noteFor(code){
+  if(code === 200) return 'OK';
+  if(code === 201) return 'Created';
+  if(code === 401) return 'Unauthorized';
+  if(code === 404) return 'Not Found';
+  if(code === 413) return 'Payload Too Large';
+  if(code === 429) return 'Blocked (Rate Limit)';
+  if(code >= 500) return 'Server Error';
+  return String(code);
+}
+function badgeClass(code){
+  if(code === 200 || code === 201) return 'badge b200';
+  if(code === 429) return 'badge b429';
+  if(code >= 400 && code < 600) return 'badge b4xx';
+  return 'badge';
+}
+function sleep(ms){ return new Promise(r=>setTimeout(r, ms)); }
+
+function rebuildSummary(rows){
+  const counts = rows.reduce((acc,r)=>{ acc[r.code] = (acc[r.code]||0)+1; return acc; }, {});
+  summary.innerHTML = '';
+  Object.keys(counts).sort().forEach(k=>{
+    const code = Number(k);
+    const chip = document.createElement('div');
+    chip.className = 'chip ' + (code===200?'ok':code===429?'rl':'err');
+    chip.textContent = code + ' — ' + (code===200?'OK':code===429?'Rate Limited':'Errors') + ' x ' + counts[k];
+    summary.appendChild(chip);
+  });
+}
+async function run(){
+  stopFlag = false;
+  $('#runBtn').disabled = true; $('#stopBtn').disabled = false;
+  const url = $('#url').value.trim();
+  const attempts = Math.max(1, parseInt($('#attempts').value||'1',10));
+  const method = $('#method').value;
+  const delay = Math.max(0, parseInt($('#delay').value||'0',10));
+  const rows = [];
+  for (let i=1;i<=attempts;i++){
+    if (stopFlag) break;
+    const t0 = performance.now();
+    let code = 0, text = '';
+    try{
+      const resp = await fetch(url, { method, headers: { 'Content-Type': 'application/json' } });
+      code = resp.status;
+      if (i===1){ // capture headers from first run
+        const limit = resp.headers.get('RateLimit-Limit');
+        const remaining = resp.headers.get('RateLimit-Remaining');
+        const reset = resp.headers.get('RateLimit-Reset');
+        const retry = resp.headers.get('Retry-After');
+        const lines = [];
+        if (limit) lines.push('RateLimit-Limit:      ' + limit);
+        if (remaining) lines.push('RateLimit-Remaining:  ' + remaining);
+        if (reset) lines.push('RateLimit-Reset:      ' + reset);
+        if (retry) lines.push('Retry-After:          ' + retry);
+        hdrs.textContent = lines.length? lines.join('\n') : '(No RateLimit headers present)';
+      }
+      try { text = await resp.text(); } catch(e){ text = ''; }
+    }catch(e){
+      code = 0; text = String(e);
+    }
+    const t1 = performance.now();
+    rows.push({ i, code, ms: Math.round(t1-t0) });
+    // add row
+    const tr = document.createElement('tr');
+    tr.innerHTML = `<td>${i}</td>
+                    <td><span class="${badgeClass(code)}">${code}</span></td>
+                    <td>${noteFor(code)}</td>
+                    <td>${new Date().toLocaleTimeString()}</td>`;
+    tbody.appendChild(tr);
+    rebuildSummary(rows);
+    if (delay) await sleep(delay);
+  }
+  $('#runBtn').disabled = false; $('#stopBtn').disabled = true;
+}
+function stop(){ stopFlag = true; }
+function clearTbl(){
+  tbody.innerHTML=''; summary.innerHTML=''; hdrs.textContent='(Run to capture a response...)';
+}
+
+$('#runBtn').addEventListener('click', run);
+$('#stopBtn').addEventListener('click', stop);
+$('#clearBtn').addEventListener('click', clearTbl);
+</script>
+</body>
+</html>
