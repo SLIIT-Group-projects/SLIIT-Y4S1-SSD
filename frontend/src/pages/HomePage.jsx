@@ -17,8 +17,7 @@ const HomePage = () => {
     const saveUserToDatabase = async () => {
       if (user) {
         try {
-          // Store clerkUserId in localStorage when the user logs in
-          localStorage.setItem("clerkUserId", user.id);
+          // Clerk handles user authentication securely
 
           // Get the token from Clerk
           const token = await getToken();
@@ -39,7 +38,7 @@ const HomePage = () => {
             }
           );
 
-          console.log(response.data.message); // Log the response from the server
+          // console.log(response.data.message); // Log the response from the server
         } catch (error) {
           console.error("Error saving user:", error);
         }

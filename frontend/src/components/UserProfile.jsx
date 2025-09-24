@@ -11,13 +11,6 @@ import { FaClipboard } from "react-icons/fa";
 const UserProfilePage = () => {
   const { user } = useUser();
 
-  useEffect(() => {
-    if (user) {
-      // Store clerkUserId in localStorage when the user accesses their profile
-      localStorage.setItem("clerkUserId", user.id);
-    }
-  }, [user]);
-
   return (
     <>
       <div className="flex flex-col items-center bg-gray-100 min-h-screen p-4">
